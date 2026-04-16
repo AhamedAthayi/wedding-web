@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find My Photos — Wedding AI</title>
+  <link rel="stylesheet" href="style.css" />
+  <a href="/admin.html">Admin Page</a>
+  <!-- Face API -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <!-- JSZip for ZIP download -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <!-- Shared utilities -->
+  <script defer src="script.js"></script>
+
+  <style>
+    /* ── Page-specific extras ── */
+    .hero-ring { font-size: 2.5rem; animation: floatRing 3s ease-in-out infinite; display: inline-block; }
+    @keyframes floatRing { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+    .match-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: linear-gradient(135deg, var(--gold), var(--rose));
+      color: #fff; border-radius: 99px; padding: .3rem .85rem; font-size: .8rem;
+    }
+
+    .scan-status {
+      margin: 1rem 0; padding: .75rem 1rem; border-radius: 10px;
+      text-align: center; font-size: .9rem; border: 1.5px solid var(--border);
+    }
+    .scan-status.detecting { background: #fdf8ed; border-color: var(--gold-light); color: var(--gold-dim); }
+    .scan-status.ok        { background: #f0f7f0; border-color: #c3ddc3; color: var(--success); }
+    .scan-status.fail      { background: #fef0f0; border-color: #f5c0c0; color: var(--error); }
+
+    .step-indicator { gap: 0; }
+
+    /* Petal decoration */
+    .petal-divider { text-align: center; font-size: 1.2rem; letter-spacing: .3rem; opacity: .35; margin: .5rem 0 1.25rem; }
+
+    /* Selection actions sticky bar */
+    .sticky-actions {
+      position: sticky; bottom: 0; z-index: 50;
+      background: rgba(255,255,255,.95); backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border); padding: .75rem 1rem;
+      display: none; gap: .5rem; flex-wrap: wrap; align-items: center;
+      box-shadow: 0 -4px 20px rgba(26,19,16,.1);
+    }
+    .sticky-actions.visible { display: flex; }
+    .sticky-sel-count { font-size: .85rem; color: var(--muted); flex: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOADING OVERLAY
+════════════════════════════════════════════ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">Loading face recognition…</p>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<header class="user-header">
+  <div class="user-header-inner">
+    <div class="hero-ring">💍</div>
+    <h1 class="couple-names" id="coupleNames">Sarah &amp; James</h1>
+    <p class="wedding-date" id="weddingDateDisp">—</p>
+    <h2>Wedding Photo Finder</h2>
+  </div>
+</header>
+
+<!-- Step indicator -->
+<div style="background:#fff;border-bottom:1px solid var(--border);padding:.85rem 1rem">
+  <div class="step-indicator">
+    <div class="step active" id="step1Wrap">
+      <div class="step-circle" id="step1Circle">1</div>
+      <div class="step-label">Scan Face</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2Wrap">
+      <div class="step-circle" id="step2Circle">2</div>
+      <div class="step-label">Your Photos</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3Wrap">
+      <div class="step-circle" id="step3Circle">3</div>
+      <div class="step-label">Download</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     STEP 1: FACE SCAN
+════════════════════════════════════════════ -->
+<section id="scanSection" class="scan-section">
+
+  <div class="scan-card">
+    <h2>👤 Scan Your Face</h2>
+    <div class="petal-divider">🌸 ❀ 🌸</div>
+    <p>Position your face inside the oval and tap <strong>Scan Me</strong>.</p>
+
+    <div class="webcam-wrapper" id="scanWrapper">
+      <video id="scanVideo" autoplay muted playsinline></video>
+      <div class="face-oval" id="faceOval"></div>
+      <div class="webcam-label">Look directly at the camera</div>
+    </div>
+
+    <div id="scanStatus" class="scan-status" style="display:none"></div>
+
+    <div class="webcam-controls" style="margin-top:1rem">
+      <button class="btn btn-secondary" id="startScanBtn" onclick="startScan()">▶ Start Camera</button>
+      <button class="btn btn-primary btn-lg hidden" id="scanBtn" onclick="doScan()">📸 Scan Me</button>
+      <button class="btn btn-outline hidden" id="rescanBtn" onclick="resetScan()">↩ Re-scan</button>
+    </div>
+
+    <p class="text-muted" style="margin-top:1rem;font-size:.78rem;text-align:center">
+      Your face scan is never stored or shared — it's only used locally to find your photos.
+    </p>
+  </div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════
+     STEP 2 & 3: RESULTS
+════════════════════════════════════════════ -->
+<section id="resultsSection" class="results-section hidden">
+
+  <!-- Match banner -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
+    <div>
+      <h2 class="results-title">Your Photos</h2>
+      <p class="results-meta">
+        <span class="match-badge" id="matchBadge">✨ 0 found</span>
+        &nbsp;<span id="matchHint" style="font-size:.8rem;color:var(--muted)"></span>
+      </p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="resetScan()">↩ Scan Again</button>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="actions-bar">
+    <button class="btn btn-primary" id="dlSelectedBtn" onclick="downloadSelected()" disabled>
+      ⬇ Download Selected
+    </button>
+    <button class="btn btn-dark" id="dlAllBtn" onclick="downloadAll()">
+      📦 Download All (ZIP)
+    </button>
+    <button class="btn btn-outline" id="selectAllBtn" onclick="toggleSelectAll()">
+      ☑ Select All
+    </button>
+    <button class="btn whatsapp-btn" onclick="shareWhatsapp()">
+      📲 Share via WhatsApp
+    </button>
+  </div>
+
+  <!-- Photo grid -->
+  <div id="resultsGrid" class="photo-grid"></div>
+
+  <!-- No-match state -->
+  <div id="noMatchState" class="no-match hidden">
+    <div class="icon">🔍</div>
+    <h3>No Matches Found</h3>
+    <p>We couldn't find your face in the uploaded photos. Try again in better lighting or ask the admin to upload more photos.</p>
+    <button class="btn btn-primary" onclick="resetScan()">Try Again</button>
+  </div>
+
+  <!-- Feedback section -->
+  <div class="feedback-card" id="feedbackCard">
+    <h3>🌸 How was your experience?</h3>
+    <p class="text-muted" style="margin-bottom:1rem">Your feedback helps us make this better.</p>
+
+    <div id="feedbackForm">
+      <div class="star-rating" id="starRating">
+        <span class="star" data-v="1" onclick="rateStar(1)">★</span>
+        <span class="star" data-v="2" onclick="rateStar(2)">★</span>
+        <span class="star" data-v="3" onclick="rateStar(3)">★</span>
+        <span class="star" data-v="4" onclick="rateStar(4)">★</span>
+        <span class="star" data-v="5" onclick="rateStar(5)">★</span>
+      </div>
+
+      <div class="form-group" style="margin-top:.75rem">
+        <label>Comment (optional)</label>
+        <textarea id="feedbackComment" placeholder="Tell us what you thought…" rows="3"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+    </div>
+
+    <div id="feedbackDone" class="feedback-submitted hidden">
+      <div class="check">💌</div>
+      <h3>Thank you!</h3>
+      <p class="text-muted">Your feedback has been saved.</p>
+    </div>
+  </div>
+
+</section>
+
+<!-- Sticky selection bar -->
+<div class="sticky-actions" id="stickyBar">
+  <span class="sticky-sel-count" id="stickyCount">0 selected</span>
+  <button class="btn btn-primary btn-sm" onclick="downloadSelected()">⬇ Download Selected</button>
+  <button class="btn btn-outline btn-sm" onclick="clearSelection()">✕ Clear</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE SCRIPT
+════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────
+   User-page JavaScript
+───────────────────────────────────────────── */
+
+let _userDescriptor = null;  // the scanned user's face descriptor
+let _matchedPhotos  = [];    // photos that match the user's face
+let _selectedIds    = new Set();
+let _starRating     = 0;
+let _scanStream     = null;
+let _allSelected    = false;
+
+// ── Initialise ───────────────────────────────
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await waitForFaceApi();
+  await loadFaceModels(msg => setText('loadingText', msg));
+  hide('loadingOverlay');
+  loadWeddingBranding();
+});
+
+function waitForFaceApi() {
+  return new Promise(resolve => {
+    const check = () => typeof faceapi !== 'undefined' ? resolve() : setTimeout(check, 80);
+    check();
+  });
+}
+
+function loadWeddingBranding() {
+  const d = getWeddingDetails();
+  if (d.brideName && d.groomName) {
+    setText('coupleNames', `${d.brideName} & ${d.groomName}`);
+    document.title = `${d.brideName} & ${d.groomName} — Wedding Photos`;
+  }
+  if (d.date) {
+    const formatted = new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric'
+    });
+    setText('weddingDateDisp', formatted);
+  }
+}
+
+// ── Step management ──────────────────────────
+
+function goToStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const wrap   = $(`step${i}Wrap`);
+    const circle = $(`step${i}Circle`);
+    wrap.classList.remove('active', 'done');
+    if (i < n)  { wrap.classList.add('done');   circle.textContent = '✓'; }
+    if (i === n){ wrap.classList.add('active');  circle.textContent = i; }
+    if (i > n)  { circle.textContent = i; }
+  }
+}
+
+// ── STEP 1: Face Scan ─────────────────────────
+
+async function startScan() {
+  const video = $('scanVideo');
+  try {
+    await startWebcam(video, true);  // front camera
+    show('scanBtn');
+    hide('startScanBtn');
+    goToStep(1);
+  } catch (err) {
+    setScanStatus('Camera access denied: ' + err.message, 'fail');
+  }
+}
+
+async function doScan() {
+  const video = $('scanVideo');
+  setScanStatus('Detecting your face…', 'detecting');
+
+  try {
+    const descriptor = await detectSingleFace(video);
+
+    if (!descriptor) {
+      setScanStatus('No face detected. Make sure your face is inside the oval and well-lit.', 'fail');
+      return;
+    }
+
+    setScanStatus('Face detected! Searching your photos…', 'ok');
+    _userDescriptor = descriptor;
+
+    // Stop webcam
+    stopWebcam(video);
+    hide('scanBtn');
+    show('rescanBtn');
+
+    // Find matching photos
+    await findMatches();
+
+  } catch (err) {
+    setScanStatus('Error: ' + err.message, 'fail');
+  }
+}
+
+function setScanStatus(msg, type = '') {
+  const el = $('scanStatus');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.className = 'scan-status' + (type ? ' ' + type : '');
+}
+
+function resetScan() {
+  _userDescriptor = null;
+  _matchedPhotos  = [];
+  _selectedIds    = new Set();
+  _allSelected    = false;
+
+  hide('resultsSection');
+  show('scanSection');
+
+  $('scanStatus').style.display = 'none';
+  hide('scanBtn');
+  hide('rescanBtn');
+  show('startScanBtn');
+
+  hide('feedbackDone');
+  show('feedbackForm');
+  _starRating = 0;
+  updateStars(0);
+
+  goToStep(1);
+  updateStickyBar();
+}
+
+// ── STEP 2: Find Matches ─────────────────────
+
+async function findMatches() {
+  const photos = getPhotos();
+  _matchedPhotos = photos.filter(p => photoMatchesFace(p, _userDescriptor, 0.55));
+
+  // Transition to results
+  hide('scanSection');
+  show('resultsSection');
+  goToStep(2);
+
+  renderResults();
+}
+
+// ── Results Rendering ────────────────────────
+
+function renderResults() {
+  const grid = $('resultsGrid');
+
+  if (_matchedPhotos.length === 0) {
+    grid.innerHTML = '';
+    show('noMatchState');
+    hide('dlSelectedBtn');
+    hide('dlAllBtn');
+    hide('selectAllBtn');
+    setText('matchBadge', '🔍 0 found');
+    return;
+  }
+
+  hide('noMatchState');
+  setText('matchBadge', `✨ ${_matchedPhotos.length} found`);
+  setText('matchHint', `Tap a photo to select it for download`);
+
+  grid.innerHTML = _matchedPhotos.map(p => `
+    <div class="photo-item" id="rp-${p.id}" onclick="toggleSelect('${p.id}')">
+      <img src="${p.dataUrl}" alt="Your photo" loading="lazy" />
+      <div class="select-check">✓</div>
+    </div>
+  `).join('');
+
+  $('dlSelectedBtn').disabled = true;
+  goToStep(3);
+}
+
+// ── Selection ────────────────────────────────
+
+function toggleSelect(id) {
+  const el = document.getElementById(`rp-${id}`);
+  if (_selectedIds.has(id)) {
+    _selectedIds.delete(id);
+    el?.classList.remove('selected');
+  } else {
+    _selectedIds.add(id);
+    el?.classList.add('selected');
+  }
+  updateStickyBar();
+  $('dlSelectedBtn').disabled = _selectedIds.size === 0;
+}
+
+function toggleSelectAll() {
+  if (_allSelected) {
+    clearSelection();
+  } else {
+    _matchedPhotos.forEach(p => {
+      _selectedIds.add(p.id);
+      document.getElementById(`rp-${p.id}`)?.classList.add('selected');
+    });
+    _allSelected = true;
+    $('selectAllBtn').textContent = '☒ Deselect All';
+    updateStickyBar();
+    $('dlSelectedBtn').disabled = false;
+  }
+}
+
+function clearSelection() {
+  _selectedIds.forEach(id => document.getElementById(`rp-${id}`)?.classList.remove('selected'));
+  _selectedIds.clear();
+  _allSelected = false;
+  $('selectAllBtn').textContent = '☑ Select All';
+  updateStickyBar();
+  $('dlSelectedBtn').disabled = true;
+}
+
+function updateStickyBar() {
+  const bar = $('stickyBar');
+  if (_selectedIds.size > 0) {
+    bar.classList.add('visible');
+    setText('stickyCount', `${_selectedIds.size} photo${_selectedIds.size !== 1 ? 's' : ''} selected`);
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+// ── Download ─────────────────────────────────
+
+function downloadSelected() {
+  if (_selectedIds.size === 0) { showToast('Select at least one photo first.', 'error'); return; }
+
+  const selected = _matchedPhotos.filter(p => _selectedIds.has(p.id));
+
+  if (selected.length === 1) {
+    downloadDataUrl(selected[0].dataUrl, selected[0].filename || 'wedding-photo.jpg');
+    showToast('Photo downloaded! 📸', 'success');
+  } else {
+    const d = getWeddingDetails();
+    const name = d.brideName && d.groomName ? `${d.brideName}-${d.groomName}-photos.zip` : 'my-wedding-photos.zip';
+    downloadAsZip(selected, name);
+  }
+}
+
+async function downloadAll() {
+  if (_matchedPhotos.length === 0) { showToast('No photos to download.', 'error'); return; }
+  const d = getWeddingDetails();
+  const name = d.brideName && d.groomName ? `${d.brideName}-${d.groomName}-all.zip` : 'wedding-photos-all.zip';
+  showToast('Preparing ZIP…');
+  await downloadAsZip(_matchedPhotos, name);
+}
+
+// ── WhatsApp Share ───────────────────────────
+
+function shareWhatsapp() {
+  const d = getWeddingDetails();
+  const couple = d.brideName && d.groomName ? `${d.brideName} & ${d.groomName}` : 'our wedding';
+  const url    = location.href;
+  const msg    = `💍 Find your photos from ${couple}'s wedding!\nScan your face here: ${url}`;
+  shareOnWhatsApp(msg);
+}
+
+// ── Star Rating ──────────────────────────────
+
+function rateStar(value) {
+  _starRating = value;
+  updateStars(value);
+}
+
+function updateStars(value) {
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.v) <= value);
+  });
+}
+
+// ── Feedback Submission ──────────────────────
+
+function submitFeedback() {
+  if (_starRating === 0) { showToast('Please select a star rating first.', 'error'); return; }
+
+  saveFeedback({
+    rating  : _starRating,
+    comment : $('feedbackComment').value.trim()
+  });
+
+  hide('feedbackForm');
+  show('feedbackDone');
+  showToast('Thank you for your feedback! 💌', 'success');
+}
+</script>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <p>💍 <span class="footer-couple" id="coupleFooter">Your Wedding</span> — Photo Finder</p>
+  <p style="font-size:.75rem;margin-top:.25rem;opacity:.4">Powered by face recognition · Photos stored locally</p>
+</footer>
+
+<script>
+  // Update footer couple name once DOM + script.js are both ready
+  window.addEventListener('DOMContentLoaded', () => {
+    const d = getWeddingDetails();
+    if (d.brideName && d.groomName) setText('coupleFooter', `${d.brideName} & ${d.groomName}`);
+  });
+</script>
+
+</body>
+</html>

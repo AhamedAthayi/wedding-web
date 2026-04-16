@@ -1,0 +1,426 @@
+/* ================================================================
+   Wedding AI Photo Finder — style.css
+   Aesthetic: Luxury Romantic — Champagne Gold & Dusty Rose
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+:root {
+  --gold:        #c9a063;
+  --gold-light:  #e8d5a3;
+  --gold-dim:    #9e7a3f;
+  --rose:        #c87a8a;
+  --rose-light:  #f2dde3;
+  --cream:       #faf6f0;
+  --cream-dark:  #f0e8dc;
+  --dark:        #1a1310;
+  --text:        #3d2e22;
+  --muted:       #9b8b7e;
+  --card:        #ffffff;
+  --border:      #e8ddd4;
+  --success:     #5a8a5a;
+  --error:       #c0392b;
+  --radius:      12px;
+  --radius-lg:   20px;
+  --shadow:      0 4px 24px rgba(26,19,16,.08);
+  --shadow-lg:   0 12px 48px rgba(26,19,16,.15);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+img { max-width: 100%; display: block; }
+a  { color: var(--gold); text-decoration: none; }
+
+/* ─── Utility ─────────────────────────────── */
+.hidden { display: none !important; }
+.flex   { display: flex; }
+.center { display: flex; align-items: center; justify-content: center; }
+.gap-sm { gap: .5rem; }
+.gap-md { gap: 1rem; }
+.mt-sm  { margin-top: .5rem; }
+.mt-md  { margin-top: 1rem; }
+.text-muted  { color: var(--muted); font-size: .85rem; }
+.text-center { text-align: center; }
+
+/* ─── Loading Overlay ─────────────────────── */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(250,246,240,.96);
+  backdrop-filter: blur(8px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999; gap: 1rem;
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--cream-dark);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.loading-overlay p {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; color: var(--muted); letter-spacing: .04em;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Buttons ─────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  padding: .6rem 1.25rem; border: none; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: .875rem; font-weight: 500;
+  cursor: pointer; transition: all .2s ease; white-space: nowrap;
+  letter-spacing: .01em;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+.btn-primary   { background: var(--gold);      color: #fff; }
+.btn-primary:hover:not(:disabled)   { background: var(--gold-dim); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(201,160,99,.4); }
+
+.btn-secondary { background: var(--rose-light); color: var(--rose); }
+.btn-secondary:hover:not(:disabled) { background: var(--rose); color: #fff; }
+
+.btn-outline   { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline:hover:not(:disabled)   { border-color: var(--gold); color: var(--gold); background: rgba(201,160,99,.06); }
+
+.btn-danger    { background: #fef0f0; color: var(--error); border: 1.5px solid #f5c0c0; }
+.btn-danger:hover:not(:disabled)    { background: var(--error); color: #fff; border-color: var(--error); }
+
+.btn-dark      { background: var(--dark); color: #fff; }
+.btn-dark:hover:not(:disabled)      { background: #2e2520; transform: translateY(-1px); }
+
+.btn-sm   { padding: .35rem .75rem; font-size: .8rem; }
+.btn-lg   { padding: .85rem 2rem;   font-size: 1rem;  }
+.btn-xl   { padding: 1rem 2.25rem;  font-size: 1.05rem; border-radius: 10px; }
+.btn-block { width: 100%; }
+.btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 8px; }
+
+/* ─── Form ────────────────────────────────── */
+.form-group { margin-bottom: .9rem; }
+.form-group label {
+  display: block; font-size: .75rem; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: .4rem;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%; padding: .625rem .875rem;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: .9rem;
+  color: var(--text); background: #fff; transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.form-group input:focus,
+.form-group textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,160,99,.12); }
+.form-group textarea { resize: vertical; min-height: 90px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; }
+
+/* ─── Card ────────────────────────────────── */
+.card {
+  background: #fff; border-radius: var(--radius-lg);
+  padding: 1.75rem; box-shadow: var(--shadow); border: 1px solid var(--border);
+  margin-bottom: 1.5rem; animation: fadeUp .4s ease both;
+}
+.card h2 {
+  font-size: 1.5rem; color: var(--dark); margin-bottom: 1rem;
+  padding-bottom: .75rem; border-bottom: 1px solid var(--cream-dark);
+}
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(12px); }
+  to   { opacity:1; transform: translateY(0);    }
+}
+
+/* ─── Alert ───────────────────────────────── */
+.alert { padding: .75rem 1rem; border-radius: 8px; font-size: .875rem; margin: .75rem 0; }
+.alert-success { background: #f0f7f0; border: 1px solid #c3ddc3; color: var(--success); }
+.alert-error   { background: #fef0f0; border: 1px solid #f5c0c0; color: var(--error); }
+.alert-info    { background: #fdf8ed; border: 1px solid var(--gold-light); color: var(--gold-dim); }
+
+/* ─── Progress ────────────────────────────── */
+.progress-bar { width: 100%; height: 6px; background: var(--cream-dark); border-radius: 99px; overflow: hidden; margin: .75rem 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--rose)); border-radius: 99px; transition: width .3s ease; width: 0%; }
+
+/* ─── Photo Grid ──────────────────────────── */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: .75rem; margin-top: 1rem;
+}
+.photo-item {
+  position: relative; aspect-ratio: 1;
+  border-radius: 10px; overflow: hidden; cursor: pointer;
+  border: 2.5px solid transparent; transition: all .2s ease; background: var(--cream-dark);
+}
+.photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.photo-item:hover img  { transform: scale(1.05); }
+.photo-item:hover      { box-shadow: var(--shadow); }
+.photo-item.selected   { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,160,99,.28); }
+
+.photo-item .select-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; background: var(--gold); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .65rem; opacity: 0; transition: opacity .2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.photo-item.selected .select-check { opacity: 1; }
+
+.photo-item .delete-btn {
+  position: absolute; top: 8px; left: 8px;
+  width: 26px; height: 26px; background: rgba(192,57,43,.85); border: none;
+  border-radius: 50%; color: #fff; font-size: .75rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .2s ease;
+}
+.photo-item:hover .delete-btn { opacity: 1; }
+
+.photo-item .face-count {
+  position: absolute; bottom: 6px; left: 6px;
+  background: rgba(26,19,16,.7); color: #fff; font-size: .65rem;
+  padding: 2px 7px; border-radius: 99px; backdrop-filter: blur(4px);
+}
+
+.photo-empty {
+  grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--muted);
+}
+.photo-empty .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .5; }
+
+/* ─── Webcam ──────────────────────────────── */
+.webcam-wrapper {
+  position: relative; border-radius: var(--radius); overflow: hidden;
+  background: var(--dark); aspect-ratio: 4/3; max-width: 420px; margin: 0 auto 1rem;
+}
+.webcam-wrapper video {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transform: scaleX(-1);
+}
+.webcam-wrapper canvas.overlay-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  transform: scaleX(-1); pointer-events: none;
+}
+.face-oval {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%);
+  width: 48%; padding-top: 58%; border: 2.5px dashed rgba(255,255,255,.5);
+  border-radius: 50%; animation: pulseOval 2.5s ease-in-out infinite; pointer-events: none;
+}
+@keyframes pulseOval {
+  0%,100% { border-color: rgba(255,255,255,.35); }
+  50%      { border-color: rgba(201,160,99,.85);  }
+}
+.webcam-label {
+  position: absolute; bottom: 0; left: 0; right: 0; padding: .65rem 1rem;
+  background: linear-gradient(transparent, rgba(0,0,0,.6));
+  color: #fff; font-size: .8rem; text-align: center;
+}
+.webcam-controls { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; }
+
+/* ─── Upload Area ─────────────────────────── */
+.upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem; text-align: center; cursor: pointer;
+  transition: all .2s ease; background: var(--cream);
+}
+.upload-area:hover, .upload-area.dragging {
+  border-color: var(--gold); background: rgba(201,160,99,.04);
+  transform: scale(1.01);
+}
+.upload-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+.upload-area p { color: var(--muted); }
+.upload-area .hint { font-size: .8rem; margin-top: .25rem; }
+
+/* ─── QR Box ──────────────────────────────── */
+.qr-box {
+  display: inline-flex; flex-direction: column; align-items: center;
+  gap: 1rem; padding: 1.5rem; background: #fff;
+  border-radius: var(--radius); border: 1px solid var(--border);
+}
+.qr-url { font-size: .72rem; color: var(--muted); word-break: break-all; max-width: 200px; text-align: center; }
+
+/* ─── Star Rating ─────────────────────────── */
+.star-rating { display: flex; gap: .2rem; margin: .5rem 0; }
+.star { font-size: 1.8rem; cursor: pointer; color: var(--border); transition: color .15s, transform .15s; }
+.star:hover { transform: scale(1.15); }
+.star.active { color: var(--gold); }
+
+/* ─── Gallery Stats Bar ───────────────────── */
+.gallery-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
+}
+.gallery-count { font-size: .85rem; color: var(--muted); }
+
+/* ─── Admin Header ────────────────────────── */
+.admin-header {
+  background: var(--dark); color: #fff;
+  padding: 0 1.5rem; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,.25);
+}
+.admin-header-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px; gap: 1rem;
+}
+.admin-brand { display: flex; align-items: center; gap: .75rem; }
+.admin-brand h1 { font-size: 1.4rem; color: var(--gold-light); font-weight: 400; }
+.admin-brand .ring { font-size: 1.3rem; }
+
+/* ─── Admin Main ──────────────────────────── */
+.admin-main { max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+/* ─── Admin Footer ────────────────────────── */
+.site-footer {
+  text-align: center; padding: 1.5rem 1rem;
+  background: var(--dark); color: rgba(255,255,255,.5);
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem;
+  letter-spacing: .06em;
+}
+.site-footer .footer-couple { color: var(--gold-light); }
+
+/* ─── Login Screen ────────────────────────── */
+.login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--dark);
+  background-image: radial-gradient(ellipse at 30% 20%, rgba(201,160,99,.15) 0%, transparent 60%),
+                    radial-gradient(ellipse at 70% 80%, rgba(200,122,138,.12) 0%, transparent 60%);
+  padding: 1.5rem;
+}
+.login-box {
+  background: #fff; border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem; width: 100%; max-width: 380px;
+  box-shadow: var(--shadow-lg); text-align: center; animation: fadeUp .5s ease;
+}
+.login-logo { font-size: 3rem; margin-bottom: 1rem; }
+.login-box h1 { font-size: 2rem; color: var(--dark); margin-bottom: .25rem; }
+.login-box > p { color: var(--muted); font-size: .9rem; margin-bottom: 1.75rem; }
+.login-box .btn { margin-top: .5rem; }
+.login-hint { margin-top: 1rem; font-size: .78rem; color: var(--muted); }
+.login-hint code { background: var(--cream-dark); padding: 1px 5px; border-radius: 4px; }
+.login-error { color: var(--error); font-size: .85rem; margin-top: .5rem; min-height: 1.2em; }
+
+/* ─── User Page Header ────────────────────── */
+.user-header {
+  background: linear-gradient(135deg, var(--dark) 0%, #2e1e17 100%);
+  color: #fff; padding: 2.5rem 1.5rem 1.75rem;
+  text-align: center; position: relative; overflow: hidden;
+}
+.user-header::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(201,160,99,.2) 0%, transparent 70%);
+}
+.user-header-inner { position: relative; max-width: 600px; margin: 0 auto; }
+.user-header .couple-names {
+  font-family: 'Cormorant Garamond', serif; font-size: 2.25rem;
+  color: var(--gold-light); font-style: italic; margin-bottom: .25rem;
+}
+.user-header .wedding-date { font-size: .85rem; color: rgba(255,255,255,.55); letter-spacing: .08em; }
+.user-header h2 { font-size: 1rem; color: rgba(255,255,255,.7); font-weight: 400; margin-top: .5rem; }
+
+/* ─── Steps ───────────────────────────────── */
+.step-indicator {
+  display: flex; align-items: center; justify-content: center; gap: 0; margin: 1.5rem 0;
+}
+.step { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.step-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--border); background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 600; color: var(--muted); transition: all .3s ease;
+}
+.step.active .step-circle   { background: var(--gold); border-color: var(--gold); color: #fff; }
+.step.done  .step-circle    { background: var(--success); border-color: var(--success); color: #fff; }
+.step-label { font-size: .68rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.step.active .step-label    { color: var(--gold-dim); font-weight: 600; }
+.step-line  { flex: 1; height: 2px; background: var(--border); max-width: 60px; }
+
+/* ─── Scan Page ───────────────────────────── */
+.scan-section, .results-section {
+  max-width: 600px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem;
+}
+.scan-card {
+  background: #fff; border-radius: var(--radius-lg); padding: 1.75rem;
+  box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center;
+  animation: fadeUp .4s ease;
+}
+.scan-card h2 { font-size: 1.75rem; margin-bottom: .5rem; }
+.scan-card p  { color: var(--muted); font-size: .9rem; margin-bottom: 1.25rem; }
+
+/* ─── Results ─────────────────────────────── */
+.results-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem;
+}
+.results-title { font-size: 1.4rem; }
+.results-meta  { font-size: .85rem; color: var(--muted); }
+
+.actions-bar {
+  display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+}
+
+/* ─── Feedback ────────────────────────────── */
+.feedback-card {
+  background: #fff; border-radius: var(--radius-lg); padding: 1.75rem;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+  margin-top: 2rem; animation: fadeUp .4s ease;
+}
+.feedback-card h3 { font-size: 1.4rem; margin-bottom: .5rem; }
+.feedback-submitted { text-align: center; padding: 1.5rem; }
+.feedback-submitted .check { font-size: 2.5rem; margin-bottom: .5rem; }
+
+/* ─── Toast ───────────────────────────────── */
+.toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: .5rem; }
+.toast {
+  background: var(--dark); color: #fff; padding: .7rem 1.1rem;
+  border-radius: 8px; font-size: .85rem; box-shadow: var(--shadow-lg);
+  animation: slideIn .3s ease; max-width: 300px;
+}
+.toast.success { background: var(--success); }
+.toast.error   { background: var(--error);   }
+@keyframes slideIn {
+  from { opacity:0; transform: translateX(20px); }
+  to   { opacity:1; transform: translateX(0);    }
+}
+
+/* ─── WhatsApp Btn ────────────────────────── */
+.whatsapp-btn {
+  background: #25D366; color: #fff;
+}
+.whatsapp-btn:hover { background: #1ebe57; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,211,102,.4); }
+
+/* ─── No Match State ──────────────────────── */
+.no-match {
+  text-align: center; padding: 3rem 1.5rem; animation: fadeUp .4s ease;
+}
+.no-match .icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: .6; }
+.no-match h3 { font-size: 1.5rem; margin-bottom: .5rem; color: var(--dark); }
+.no-match p  { color: var(--muted); margin-bottom: 1.5rem; }
+
+/* ─── Responsive ──────────────────────────── */
+@media (max-width: 600px) {
+  .photo-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .form-grid  { grid-template-columns: 1fr; }
+  .card       { padding: 1.25rem; }
+  .admin-main { padding: 1.25rem 1rem 4rem; }
+  .user-header .couple-names { font-size: 1.75rem; }
+  .results-header { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 380px) {
+  .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .actions-bar .btn { flex: 1; min-width: 0; font-size: .78rem; }
+}

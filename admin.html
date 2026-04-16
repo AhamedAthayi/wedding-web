@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Wedding AI Photo Finder</title>
+  <link rel="stylesheet" href="style.css" />
+  <a href="/index.html">Home Page</a>
+  <!-- Face API (browser-based face recognition) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <!-- QR Code generator -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- Shared utilities -->
+  <script defer src="script.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOADING OVERLAY
+════════════════════════════════════════════ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">Initialising…</p>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════ -->
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-box">
+    <div class="login-logo">💍</div>
+    <h1>Admin Login</h1>
+    <p>Wedding AI Photo Finder</p>
+
+    <div class="form-group" style="margin-top:1.5rem; text-align:left">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username" />
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <div id="loginError" class="login-error"></div>
+    <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">Sign In</button>
+    <p class="login-hint">Default credentials: <code>admin</code> / <code>wedding2024</code></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════ -->
+<div id="dashboard" class="hidden">
+
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-brand">
+        <span class="ring">💍</span>
+        <h1>Wedding AI <span style="font-size:.9em;color:var(--gold-light);font-style:italic">Admin</span></h1>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <span id="headerCouple" style="font-size:.85rem;color:rgba(255,255,255,.55);display:none"></span>
+        <button class="btn btn-outline btn-sm" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- ── Wedding Details ─────────────────── -->
+    <section class="card">
+      <h2>📋 Wedding Details</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Bride's Name</label>
+          <input type="text" id="brideName" placeholder="e.g. Sarah" />
+        </div>
+        <div class="form-group">
+          <label>Groom's Name</label>
+          <input type="text" id="groomName" placeholder="e.g. James" />
+        </div>
+        <div class="form-group">
+          <label>Wedding Date</label>
+          <input type="date" id="weddingDate" />
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="btn btn-primary" onclick="saveDetails()">Save Details</button>
+        <span id="detailsMsg" class="hidden" style="color:var(--success);font-size:.875rem">✓ Saved successfully!</span>
+      </div>
+    </section>
+
+    <!-- ── QR Code ─────────────────────────── -->
+    <section class="card">
+      <h2>📱 Guest QR Code</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.25rem">
+        Print or share this QR code so guests can scan their face and find their photos.
+      </p>
+      <div id="qrBox" class="qr-box">
+        <div id="qrcode"></div>
+        <p class="qr-url" id="guestLink">—</p>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="printQr()">🖨️ Print QR</button>
+        <button class="btn btn-outline btn-sm" onclick="copyGuestLink()">🔗 Copy Link</button>
+      </div>
+    </section>
+
+    <!-- ── Upload Photos ───────────────────── -->
+    <section class="card">
+      <h2>☁️ Upload Photos</h2>
+      <div id="uploadArea" class="upload-area"
+           onclick="$('photoInput').click()"
+           ondragover="onDragOver(event)"
+           ondragleave="onDragLeave(event)"
+           ondrop="onDrop(event)">
+        <div class="upload-icon">📁</div>
+        <p><strong>Click to browse</strong> or drag &amp; drop photos here</p>
+        <p class="hint">Supports JPG · PNG · WEBP · up to 20 files at once</p>
+        <input type="file" id="photoInput" multiple accept="image/*" onchange="handleUpload(event)" hidden />
+      </div>
+      <div class="progress-bar hidden" id="uploadProgressBar">
+        <div class="progress-fill" id="uploadFill"></div>
+      </div>
+      <p id="uploadStatus" style="font-size:.875rem;color:var(--muted);margin-top:.5rem"></p>
+    </section>
+
+    <!-- ── Webcam Capture ──────────────────── -->
+    <section class="card">
+      <h2>📷 Webcam Capture</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">
+        Take a live photo directly from the device camera.
+      </p>
+      <div class="webcam-wrapper" id="adminCamWrapper">
+        <video id="adminVideo" autoplay muted playsinline></video>
+        <div class="webcam-label" id="adminCamLabel" style="display:none">Camera active — position your shot</div>
+      </div>
+      <div class="webcam-controls">
+        <button class="btn btn-secondary" id="startCamBtn"   onclick="startAdminCam()">▶ Start Camera</button>
+        <button class="btn btn-primary  hidden" id="capBtn"  onclick="captureAdmin()">📸 Capture</button>
+        <button class="btn btn-outline  hidden" id="stopBtn" onclick="stopAdminCam()">■ Stop Camera</button>
+      </div>
+      <canvas id="adminCanvas" hidden></canvas>
+    </section>
+
+    <!-- ── Gallery ────────────────────────── -->
+    <section class="card">
+      <h2>🖼️ Photo Gallery</h2>
+      <div class="gallery-bar">
+        <span class="gallery-count" id="galleryCount">0 photos uploaded</span>
+        <button class="btn btn-danger btn-sm" onclick="clearGallery()">🗑️ Clear All</button>
+      </div>
+      <div class="alert alert-info" style="font-size:.8rem">
+        ℹ️ Photos &amp; face data are stored in browser localStorage (~5 MB limit).
+        For large weddings consider a Firebase backend.
+      </div>
+      <div id="adminGallery" class="photo-grid">
+        <div class="photo-empty">
+          <div class="empty-icon">🌸</div>
+          <p>No photos yet. Upload some above.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>💍 <span class="footer-couple" id="footerNames">Your Wedding</span> — Photo Finder</p>
+  </footer>
+
+</div><!-- /#dashboard -->
+
+<!-- ═══════════════════════════════════════════
+     PAGE SCRIPT
+════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────
+   Admin-specific JavaScript
+───────────────────────────────────────────── */
+
+// ── Initialise ──────────────────────────────
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await waitForFaceApi();   // wait for deferred script tag to load
+  hide('loadingOverlay');
+
+  if (isAdminLoggedIn()) {
+    showDashboard();
+    loadModelsInBackground();
+  } else {
+    show('loginScreen');
+  }
+});
+
+/** Poll until faceapi global is available (loaded via defer). */
+function waitForFaceApi() {
+  return new Promise(resolve => {
+    const check = () => (typeof faceapi !== 'undefined') ? resolve() : setTimeout(check, 80);
+    check();
+  });
+}
+
+function loadModelsInBackground() {
+  loadFaceModels(msg => { console.log('[FaceAPI]', msg); })
+    .then(() => showToast('Face recognition ready ✓', 'success'))
+    .catch(err => showToast('Model load failed: ' + err.message, 'error'));
+}
+
+// ── Auth ────────────────────────────────────
+
+function doLogin() {
+  const user = $('loginUser').value.trim();
+  const pass = $('loginPass').value;
+  if (loginAdmin(user, pass)) {
+    hide('loginScreen');
+    showDashboard();
+    loadModelsInBackground();
+  } else {
+    $('loginError').textContent = '✗ Invalid credentials. Try admin / wedding2024';
+  }
+}
+
+// Allow Enter key to submit login form
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !$('loginScreen').classList.contains('hidden')) doLogin();
+});
+
+function doLogout() {
+  if (!confirm('Log out of admin panel?')) return;
+  logoutAdmin();
+  location.reload();
+}
+
+// ── Dashboard Setup ─────────────────────────
+
+function showDashboard() {
+  show('dashboard');
+  populateDetails();
+  renderGallery();
+  generateQr();
+}
+
+// ── Wedding Details ──────────────────────────
+
+function populateDetails() {
+  const d = getWeddingDetails();
+  $('brideName').value   = d.brideName  || '';
+  $('groomName').value   = d.groomName  || '';
+  $('weddingDate').value = d.date       || '';
+  updateCoupleBranding(d);
+}
+
+function saveDetails() {
+  const d = {
+    brideName : $('brideName').value.trim(),
+    groomName : $('groomName').value.trim(),
+    date      : $('weddingDate').value
+  };
+  saveWeddingDetails(d);
+  updateCoupleBranding(d);
+  const msg = $('detailsMsg');
+  msg.classList.remove('hidden');
+  setTimeout(() => msg.classList.add('hidden'), 2500);
+  generateQr(); // refresh QR label
+}
+
+function updateCoupleBranding(d) {
+  const names = d.brideName && d.groomName
+    ? `${d.brideName} & ${d.groomName}`
+    : (d.brideName || d.groomName || 'Your Wedding');
+  setText('footerNames', names);
+  const hdr = $('headerCouple');
+  hdr.textContent = names;
+  hdr.style.display = 'inline';
+}
+
+// ── QR Code ──────────────────────────────────
+
+let _qrInstance = null;
+
+function generateQr() {
+  const guestUrl = location.href.replace('admin.html', 'index.html');
+  $('guestLink').textContent = guestUrl;
+
+  const container = $('qrcode');
+  container.innerHTML = '';
+
+  try {
+    _qrInstance = new QRCode(container, {
+      text     : guestUrl,
+      width    : 160,
+      height   : 160,
+      colorDark: '#1a1310',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch (e) {
+    container.textContent = guestUrl;
+  }
+}
+
+function printQr() {
+  const img = $('qrcode').querySelector('img');
+  if (!img) { showToast('QR code not ready yet.', 'error'); return; }
+  const w = window.open('', '_blank');
+  const d = getWeddingDetails();
+  const names = d.brideName && d.groomName ? `${d.brideName} & ${d.groomName}` : 'Wedding';
+  w.document.write(`
+    <html><head><title>QR Code</title>
+    <style>body{font-family:serif;text-align:center;padding:40px}
+    h2{font-size:1.6rem;margin-bottom:8px}
+    p{color:#888;font-size:.9rem;margin-bottom:20px}
+    img{width:220px;height:220px}</style></head>
+    <body><h2>💍 ${names}</h2>
+    <p>Scan to find your wedding photos</p>
+    <img src="${img.src}" /><br>
+    <small style="color:#aaa;font-size:.7rem">${$('guestLink').textContent}</small>
+    <script>window.onload=()=>window.print()<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+function copyGuestLink() {
+  const url = $('guestLink').textContent;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Guest link copied! 📋', 'success'))
+    .catch(() => showToast('Copy failed — please copy manually.', 'error'));
+}
+
+// ── Drag-and-drop support ────────────────────
+
+function onDragOver(e) {
+  e.preventDefault();
+  $('uploadArea').classList.add('dragging');
+}
+function onDragLeave() {
+  $('uploadArea').classList.remove('dragging');
+}
+function onDrop(e) {
+  e.preventDefault();
+  $('uploadArea').classList.remove('dragging');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) processFiles(files);
+}
+
+// ── Photo Upload ─────────────────────────────
+
+function handleUpload(event) {
+  const files = Array.from(event.target.files);
+  if (files.length) processFiles(files);
+  event.target.value = ''; // allow re-uploading same file
+}
+
+async function processFiles(files) {
+  show('uploadProgressBar');
+  const total = files.length;
+  let done = 0;
+
+  for (const file of files) {
+    setText('uploadStatus', `Processing ${file.name} (${done + 1}/${total})…`);
+    try {
+      await processOneFile(file);
+    } catch (err) {
+      showToast(`Skipped ${file.name}: ${err.message}`, 'error');
+    }
+    done++;
+    setProgress('uploadFill', (done / total) * 100);
+  }
+
+  hide('uploadProgressBar');
+  setText('uploadStatus', `✓ Done! ${done} photo(s) processed.`);
+  renderGallery();
+  showToast(`${done} photo(s) uploaded`, 'success');
+}
+
+async function processOneFile(file) {
+  // 1. Convert to data URL
+  let dataUrl = await fileToDataUrl(file);
+  // 2. Resize to keep storage manageable
+  dataUrl = await resizeDataUrl(dataUrl, 1200);
+  // 3. Run face detection
+  const img = await loadImage(dataUrl);
+  const descriptors = await detectFaceDescriptors(img);
+  // 4. Save
+  const photo = {
+    id          : uid(),
+    dataUrl,
+    filename    : file.name,
+    descriptors,
+    uploadedAt  : new Date().toISOString(),
+    faceCount   : descriptors.length
+  };
+  savePhoto(photo);
+}
+
+// ── Webcam Capture ───────────────────────────
+
+let _adminCamRunning = false;
+
+async function startAdminCam() {
+  const video = $('adminVideo');
+  try {
+    await startWebcam(video, false); // use back camera if available
+    _adminCamRunning = true;
+    show('capBtn'); show('stopBtn'); hide('startCamBtn');
+    $('adminCamLabel').style.display = 'block';
+  } catch (err) {
+    showToast('Cannot access camera: ' + err.message, 'error');
+  }
+}
+
+function stopAdminCam() {
+  stopWebcam($('adminVideo'));
+  _adminCamRunning = false;
+  hide('capBtn'); hide('stopBtn'); show('startCamBtn');
+  $('adminCamLabel').style.display = 'none';
+}
+
+async function captureAdmin() {
+  if (!_adminCamRunning) return;
+  const video = $('adminVideo');
+
+  showToast('Capturing & detecting faces…');
+  const dataUrl = captureVideoFrame(video);
+  const img = await loadImage(dataUrl);
+  const descriptors = await detectFaceDescriptors(img);
+
+  const photo = {
+    id         : uid(),
+    dataUrl,
+    filename   : `webcam-${Date.now()}.jpg`,
+    descriptors,
+    uploadedAt : new Date().toISOString(),
+    faceCount  : descriptors.length
+  };
+
+  if (savePhoto(photo)) {
+    showToast(`Photo captured! ${descriptors.length} face(s) detected.`, 'success');
+    renderGallery();
+  }
+}
+
+// ── Gallery ──────────────────────────────────
+
+function renderGallery() {
+  const photos = getPhotos();
+  const grid   = $('adminGallery');
+  const count  = $('galleryCount');
+
+  count.textContent = `${photos.length} photo${photos.length !== 1 ? 's' : ''} uploaded`;
+
+  if (photos.length === 0) {
+    grid.innerHTML = `
+      <div class="photo-empty">
+        <div class="empty-icon">🌸</div>
+        <p>No photos yet. Upload some above.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = photos.map(p => `
+    <div class="photo-item" id="pi-${p.id}">
+      <img src="${p.dataUrl}" alt="${p.filename}" loading="lazy" />
+      <button class="delete-btn" onclick="removePhoto('${p.id}')" title="Delete">✕</button>
+      <span class="face-count">👤 ${p.faceCount ?? p.descriptors?.length ?? 0}</span>
+    </div>
+  `).join('');
+}
+
+function removePhoto(id) {
+  if (!confirm('Delete this photo?')) return;
+  deletePhoto(id);
+  renderGallery();
+}
+
+function clearGallery() {
+  if (!confirm('Delete ALL photos? This cannot be undone.')) return;
+  clearAllPhotos();
+  renderGallery();
+  showToast('Gallery cleared.', 'success');
+}
+</script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAr-VFNiGIEebslhpjsUYAMk80kLlerIzc",
+    authDomain: "wedding-6d106.firebaseapp.com",
+    projectId: "wedding-6d106",
+    storageBucket: "wedding-6d106.firebasestorage.app",
+    messagingSenderId: "596273623866",
+    appId: "1:596273623866:web:d4134a7a5d48b34e715603",
+    measurementId: "G-5J7TMRP3N1"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+</body>
+</html>
