@@ -12,6 +12,40 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <!-- Shared utilities -->
   <script defer src="script.js"></script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "wedding-6d106.firebaseapp.com",
+    projectId: "wedding-6d106",
+    storageBucket: "wedding-6d106.firebasestorage.app",
+    messagingSenderId: "596273623866",
+    appId: "1:596273623866:web:d4134a7a5d48b34e715603",
+    measurementId: "G-5J7TMRP3N1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  const storage = getStorage(app);
+  const db = getFirestore(app);
+
+  // make global access
+  window.storage = storage;
+  window.db = db;
+  window.ref = ref;
+  window.uploadBytes = uploadBytes;
+  window.getDownloadURL = getDownloadURL;
+  window.addDoc = addDoc;
+  window.collection = collection;
+  window.getDocs = getDocs;
+</script>
+  
 </head>
 <body>
 
@@ -43,7 +77,6 @@
 
     <div id="loginError" class="login-error"></div>
     <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">Sign In</button>
-    <p class="login-hint">Default credentials: <code>admin</code> / <code>wedding2024</code></p>
   </div>
 </div>
 
@@ -482,28 +515,6 @@ function clearGallery() {
   showToast('Gallery cleared.', 'success');
 }
 </script>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyAr-VFNiGIEebslhpjsUYAMk80kLlerIzc",
-    authDomain: "wedding-6d106.firebaseapp.com",
-    projectId: "wedding-6d106",
-    storageBucket: "wedding-6d106.firebasestorage.app",
-    messagingSenderId: "596273623866",
-    appId: "1:596273623866:web:d4134a7a5d48b34e715603",
-    measurementId: "G-5J7TMRP3N1"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 </body>
 </html>
